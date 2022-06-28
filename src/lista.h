@@ -4,28 +4,11 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-/**
- * Las siguientes estructuras deberían ser privadas y no está permitido el
- * acceso directo a los campos por fuera de la implementación.
- *
- * El motivo por el cual las estructuras son públicas es para asegurarnos de que
- * la implementación realizada es la pedida
- */
-typedef struct nodo {
-	void *elemento;
-	struct nodo *siguiente;
-} nodo_t;
 
-typedef struct lista {
-	nodo_t *nodo_inicio;
-	nodo_t *nodo_fin;
-	size_t cantidad;
-} lista_t;
+typedef struct nodo nodo_t;
+typedef struct lista lista_t;
 
-typedef struct lista_iterador {
-	nodo_t *corriente;
-	lista_t *lista;
-} lista_iterador_t;
+typedef struct lista_iterador lista_iterador_t;
 
 /**
  * Crea la lista reservando la memoria necesaria.

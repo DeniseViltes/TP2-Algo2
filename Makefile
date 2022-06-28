@@ -1,32 +1,23 @@
-PROGRAM=escape_pokemon
-CC=gcc
-CFLAGS= -Wall -std=c99 -Wconversion -Wtype-limits -Werror -pedantic -g -O1
-OBJETOS=ejemplo/objetos.txt
-INTERACCIONES=ejemplo/interacciones.txt
+PROGRAM = escape_pokemon
+CC = gcc
+CFLAGS = -Wall -std=c99 -Wconversion -Wtype-limits -Werror -pedantic -g -O1
+OBJETOS = ejemplo/objetos.txt
+INTERACCIONES = ejemplo/interacciones.txt
+LIMPIAR = escape_pokemon.o sala.o interaccion.o objeto.o 
 
-all: $(PROGRAM)
+all: clean $(PROGRAM)
 
-$(PROGRAM): escape_pokemon.o sala.o interaccion.o objeto.o
-	$(CC) $(CFLAGS) escape_pokemon.o sala.o interaccion.o objeto.o -o $(PROGRAM)
+$(PROGRAM): escape_pokemon.c src/*
+	$(CC) $(CFLAGS) src/*.c src/*.o escape_pokemon.c -o $(PROGRAM)
 
-
-pruebas.o: pruebas.c pa2mm.h sala.o interaccion.o objeto.o
-	$(CC) $(CFLAGS) -c pruebas.c
-
-escape_pokemon.o: escape_pokemon.c src/sala.h sala.o 
-	$(CC) $(CFLAGS) -c escape_pokemon.c
-
-sala.o: src/sala.c src/sala.h src/estructuras.h src/objeto.h src/interaccion.h
-	$(CC) $(CFLAGS) -c src/sala.c
-
-interaccion.o: src/interaccion.c src/interaccion.h src/estructuras.h
-	$(CC) $(CFLAGS) -c src/interaccion.c
-
-objeto.o: src/objeto.c src/objeto.h src/estructuras.h
-	$(CC) $(CFLAGS) -c src/objeto.c
+pruebas: pruebas.c pa2mm.h src/*
+	$(CC) $(CFLAGS) src/*.c src/*.o pruebas.c -o pruebas
 
 valgrind: $(PROGRAM)
 	valgrind ${VFLAGS} ./$(PROGRAM) ${OBJETOS} ${INTERACCIONES}
 
+valgrind-pruebas: pruebas
+	valgrind $(VALGRIND_FLAGS) ./pruebas
+
 clean:
-	rm -vf *.o $(PROGRAM)
+	rm -vf $(LIMPIAR) $(PROGRAM) pruebas
