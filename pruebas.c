@@ -163,6 +163,69 @@ void pruebas_interacciones()
 
 	sala_destruir(sala);
 }
+void mostrar_conocidos(char **objetos, int cantidad){
+	for (size_t i = 0; i < cantidad; i++)
+		printf("%s\n", objetos[i]);
+}
+
+void mostrar_mensaje(const char *mensaje,enum tipo_accion accion, void *aux){
+	if (!mensaje)
+		return;
+	printf("%s\n",mensaje);
+}
+
+void pruebas_de_funcionamiento_del_juego(){
+	sala_t *sala = sala_crear_desde_archivos("ejemplo/objetos.txt","ejemplo/interacciones.txt");
+	pa2m_afirmar(sala != NULL, "La sala se creo correctamente");
+	int cantidad = 0;
+	char ** objetos = sala_obtener_nombre_objetos(sala , &cantidad);
+	mostrar_conocidos(objetos, cantidad);
+	int cantidad_conocidos;
+	char **conocidos = sala_obtener_nombre_objetos_conocidos(sala,&cantidad_conocidos);
+	pa2m_afirmar(cantidad_conocidos == 1,"Solo hay un elemento conocido al iniciar el juego");
+	pa2m_afirmar(strcmp(conocidos[0],"habitacion")==0, "Y es el objeto correcto");
+	int cantidad_inventario = 0;
+	char **inventario = sala_obtener_nombre_objetos_poseidos(sala,&cantidad_inventario);
+	pa2m_afirmar(cantidad_inventario == 0,"No hay objetos en el inventario al iniciar el juego");
+	pa2m_afirmar(sala_ejecutar_interaccion(sala,"examinar","habitacion","",NULL,NULL) == 2, "Al examinar la habitación se ejecutan dos acciones");
+	int nuevos= 0;
+	char ** otro = sala_obtener_nombre_objetos_conocidos(sala, &nuevos);
+	
+	pa2m_afirmar(sala_agarrar_objeto(sala,"pokebola"),"Se puede agarrar la pokebola");
+	pa2m_afirmar(!sala_agarrar_objeto(sala, "puerta"), "No se puede agarrar la pokebola");
+	int n = sala_ejecutar_interaccion(sala,"examinar","puerta","",mostrar_mensaje, NULL);
+	pa2m_afirmar(n == 0,"No se puede abrir la puerta");
+	int cant =0;
+	char **c = sala_obtener_nombre_objetos_conocidos(sala,&cant);
+	
+	n = sala_ejecutar_interaccion(sala, "abrir","pokebola","",mostrar_mensaje,NULL);
+	pa2m_afirmar(n == 2, "Se ejecutan dos acciones con la pokebola");
+
+	char **k = sala_obtener_nombre_objetos_conocidos(sala, &cant);
+	n = sala_ejecutar_interaccion(sala,"abir","llave","puerta",mostrar_mensaje,NULL);
+	pa2m_afirmar(n == 0, "No se puede abrir la puerta sin tener la llave en el inventario");
+	pa2m_afirmar(sala_agarrar_objeto(sala, "llave"), "Se puede agarrar la llave");
+	
+	int p = sala_ejecutar_interaccion(sala, "abrir", "llave", "puerta", mostrar_mensaje, NULL);
+	pa2m_afirmar(p == 1, "Ahora si se puede abir la puerta");
+
+	int eje = sala_ejecutar_interaccion(sala, "examinar", "habitacion", "", mostrar_mensaje, NULL);
+	pa2m_afirmar(eje == 0, "No se puede descubir nada nuevo al examinar la habitación");
+	printf ("%d\n",eje);
+	int cantd = 0;
+	char **ob = sala_obtener_nombre_objetos(sala, &cantd);
+	mostrar_conocidos(ob,cantd);
+
+
+	sala_destruir(sala);
+	free(objetos);
+	free(otro);
+	free(conocidos);
+	free(inventario);
+	free(c);
+	free(k);
+	free(ob);
+}
 
 int main()
 {
@@ -180,6 +243,8 @@ int main()
 
 	pa2m_nuevo_grupo("Pruebas de interacciones");
 	pruebas_interacciones();
+	pa2m_nuevo_grupo("Pruebas de funcionamiento del juego");
+	pruebas_de_funcionamiento_del_juego();
 
 	return pa2m_mostrar_reporte();
 }

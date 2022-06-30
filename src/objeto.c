@@ -23,7 +23,7 @@ struct objeto *objeto_crear_desde_string(const char *string)
 	else
 		return NULL;
 
-	struct objeto *objeto = malloc(sizeof(struct objeto));
+	struct objeto *objeto = calloc(1,sizeof(struct objeto));
 	if (objeto == NULL)
 		return NULL;
 
