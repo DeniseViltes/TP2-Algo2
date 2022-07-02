@@ -10,9 +10,6 @@
 
 #define MAX_LINEA 200
 
-
-
-
 struct sala
 {
 	hash_t *objetos;
@@ -28,7 +25,6 @@ static bool leer_interaccion(sala_t *sala,const char *path_interacciones);
 
 sala_t *sala_crear_desde_archivos(const char *objetos, const char *interacciones)
 {
-
 	sala_t *sala = sala_crear_vacia();
 	if (sala == NULL){
 		return NULL;
@@ -56,7 +52,6 @@ struct vector_objetos {
 };
 
 static bool guardar_objetos_en_vector(const char *clave, void *valor, void *aux);
-
 static char **_obtener_nombre_objetos(hash_t *objetos, int *cantidad, size_t tamanio);
 
 char **sala_obtener_nombre_objetos(sala_t *sala, int *cantidad)
@@ -100,14 +95,12 @@ bool sala_agarrar_objeto(sala_t *sala, const char *nombre_objeto)
 {
 	if (!sala || !nombre_objeto)
 		return false;
-	struct objeto *objeto = hash_quitar(sala->objetos_conocidos, nombre_objeto);
-	if (!objeto)
-		return false;
-	if (objeto->es_asible == false){
-		sala->objetos_conocidos = hash_insertar(sala->objetos_conocidos, nombre_objeto,objeto, NULL);
-		return false;
-	}
+	struct objeto *objeto = hash_obtener(sala->objetos_conocidos, nombre_objeto);
 
+	if (!objeto || objeto->es_asible == false)
+		return false;
+
+	hash_quitar(sala->objetos_conocidos, nombre_objeto);
 	sala->inventario = hash_insertar(sala->inventario,nombre_objeto, objeto,NULL);
 	if (!sala->inventario)
 		return false;
@@ -252,13 +245,11 @@ static bool leer_objetos(sala_t *sala, const char *path_objetos)
 		return NULL;
 
 	char buff[MAX_LINEA];
-	while (fgets(buff, sizeof(buff), archivo) != NULL)
-	{
+	while (fgets(buff, sizeof(buff), archivo) != NULL){
 		struct objeto *objeto = objeto_crear_desde_string(buff);
 		if (!objeto)
 			return false;
-		if (hash_cantidad(sala->objetos) == 0)
-		{
+		if (hash_cantidad(sala->objetos) == 0){
 			sala->objetos_conocidos = hash_insertar(sala->objetos_conocidos,objeto->nombre, objeto, NULL);
 			if (!sala->objetos_conocidos)
 				return false;
@@ -283,8 +274,7 @@ static bool leer_interaccion(sala_t *sala, const char *path_interacciones)
 	if (!archivo)
 		return NULL;
 	char buff[MAX_LINEA];
-	while (fgets(buff, sizeof(buff), archivo) != NULL)
-	{
+	while (fgets(buff, sizeof(buff), archivo) != NULL){
 		struct interaccion *interaccion = interaccion_crear_desde_string(buff);
 		if (interaccion == NULL)
 			return false;
@@ -369,7 +359,7 @@ int accion_descubrir_objeto(sala_t *sala, struct interaccion *interaccion);
 int accion_reemplazar_objeto(sala_t *sala, struct interaccion *interaccion);
 int accion_eliminar_objeto(sala_t *sala, struct interaccion *interaccion);
 int accion_escapar(sala_t *sala);
-void accion_mostrar_mensaje(struct interaccion *interaccion, void (*f)(const char *, enum tipo_accion, void *), void *aux);
+int accion_mostrar_mensaje(struct interaccion *interaccion, void (*f)(const char *, enum tipo_accion, void *), void *aux);
 
 /*
  * Ejecuta una accion segun la accion de la interaccion dada
@@ -393,7 +383,12 @@ static int ejecutar_accion(sala_t *sala, struct interaccion *interaccion, void (
 	if (accion == ESCAPAR){
 		se_ejecuto = accion_escapar(sala);
 	}
-	accion_mostrar_mensaje(interaccion, f, aux);
+	if (accion == MOSTRAR_MENSAJE)
+		se_ejecuto = accion_mostrar_mensaje(interaccion, f, aux);
+
+	else if (se_ejecuto != -1 && accion != MOSTRAR_MENSAJE)
+		accion_mostrar_mensaje(interaccion,f,aux);
+
 	return se_ejecuto;
 }
 
@@ -404,12 +399,14 @@ int accion_descubrir_objeto(sala_t *sala, struct interaccion *interaccion)
 	    hash_contiene(sala->objetos, interaccion->accion.objeto) == false)
 		return -1;
 
-	struct objeto *primer_objeto = hash_obtener(sala->objetos, interaccion->objeto);
+	struct objeto *objeto_interaccion = hash_obtener(sala->objetos, interaccion->objeto);
 
-	if (primer_objeto->es_asible == true && hash_contiene(sala->inventario, primer_objeto->nombre) == false)
+	if (objeto_interaccion->es_asible == true && hash_contiene(sala->inventario, objeto_interaccion->nombre) == false)
 		return -1;
+
 	struct objeto *objeto = hash_obtener(sala->objetos, interaccion->accion.objeto);
 	sala->objetos_conocidos = hash_insertar(sala->objetos_conocidos, objeto->nombre, objeto, NULL);
+
 	return 0;
 }
 
@@ -417,8 +414,10 @@ int accion_reemplazar_objeto(sala_t *sala, struct interaccion *interaccion)
 {
 	if (hash_contiene(sala->inventario, interaccion->objeto) == false)
 		return -1;
+
 	struct objeto *objeto = hash_obtener(sala->objetos, interaccion->accion.objeto);
 	sala->objetos_conocidos = hash_insertar(sala->objetos_conocidos, objeto->nombre, objeto, NULL);
+
 	hash_quitar(sala->objetos_conocidos, interaccion->objeto_parametro);
 	void *objeto_quitado = hash_quitar(sala->objetos, interaccion->objeto_parametro);
 	free(objeto_quitado);
@@ -440,10 +439,12 @@ int accion_escapar(sala_t *sala)
 	return 0;
 }
 
-void accion_mostrar_mensaje(struct interaccion *interaccion, void (*f)(const char *, enum tipo_accion, void *), void *aux)
+int accion_mostrar_mensaje(struct interaccion *interaccion, void (*f)(const char *, enum tipo_accion, void *), void *aux)
 {
-	if (f != NULL)
-		f(interaccion->accion.mensaje, interaccion->accion.tipo, aux);
+	if (f == NULL)
+		return -1;
+	f(interaccion->accion.mensaje, interaccion->accion.tipo, aux);
+	return 0;
 }
 
 /*
@@ -456,7 +457,7 @@ void accion_mostrar_mensaje(struct interaccion *interaccion, void (*f)(const cha
  */
 static bool ejecutar_interaccion(void *elemento, void *extra)
 {
-	if (!elemento )
+	if (!elemento)
 		return false;
 	struct interaccion *inter = elemento;
 	struct ejecutar *ejecutar = extra;
