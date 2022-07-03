@@ -417,7 +417,6 @@ int accion_reemplazar_objeto(sala_t *sala, struct interaccion *interaccion)
 
 	struct objeto *objeto = hash_obtener(sala->objetos, interaccion->accion.objeto);
 	sala->objetos_conocidos = hash_insertar(sala->objetos_conocidos, objeto->nombre, objeto, NULL);
-
 	hash_quitar(sala->objetos_conocidos, interaccion->objeto_parametro);
 	void *objeto_quitado = hash_quitar(sala->objetos, interaccion->objeto_parametro);
 	free(objeto_quitado);
