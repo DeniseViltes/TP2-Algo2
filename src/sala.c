@@ -30,7 +30,7 @@ sala_t *sala_crear_desde_archivos(const char *objetos, const char *interacciones
 		return NULL;
 	}
 	if (!leer_objetos(sala, objetos) || 
-		!leer_interaccion(sala, interacciones)){
+	    !leer_interaccion(sala, interacciones)){
 		sala_destruir(sala);
 		return NULL;
 	}
@@ -205,12 +205,15 @@ void sala_destruir(sala_t *sala)
  * ---------------------------Funciones Privadas---------------------------
  */
 
+
+#define CAPACIDAD_INICIAL 5
+
 /*
  *Devuelve una sala con sus elementos inicializados
  * En el caso de los objetos, se crea un hash vacío
  * Y en el caso de las iteracciones, una lista vacía;
  * Ademas crea un jugador con 0 elementos conocidos
- * Y con el inventario vacio
+ * Y con el inventario vacio con una capacidad inicial
 */
 static sala_t *sala_crear_vacia()
 {
@@ -218,11 +221,11 @@ static sala_t *sala_crear_vacia()
 	if (sala == NULL)
 		return NULL;
 	sala->interacciones = lista_crear();
-	sala->objetos = hash_crear(10);
-	sala->inventario = hash_crear(10);
-	sala->objetos_conocidos = hash_crear(10);
+	sala->objetos = hash_crear(CAPACIDAD_INICIAL);
+	sala->inventario = hash_crear(CAPACIDAD_INICIAL);
+	sala->objetos_conocidos = hash_crear(CAPACIDAD_INICIAL);
 
-	if (!sala->interacciones || !sala->objetos ||!sala->inventario || 
+	if (!sala->interacciones || !sala->objetos || !sala->inventario || 
 	    !sala->objetos_conocidos){
 		sala_destruir(sala);
 		return NULL;
@@ -355,11 +358,12 @@ static bool es_interaccion_valida(void *elemento, void *extra)
 	return true;
 }
 
-int accion_descubrir_objeto(sala_t *sala, struct interaccion *interaccion);
-int accion_reemplazar_objeto(sala_t *sala, struct interaccion *interaccion);
-int accion_eliminar_objeto(sala_t *sala, struct interaccion *interaccion);
-int accion_escapar(sala_t *sala);
-int accion_mostrar_mensaje(struct interaccion *interaccion, void (*f)(const char *, enum tipo_accion, void *), void *aux);
+
+static int accion_descubrir_objeto(sala_t *sala, struct interaccion *interaccion);
+static int accion_reemplazar_objeto(sala_t *sala, struct interaccion *interaccion);
+static int accion_eliminar_objeto(sala_t *sala, struct interaccion *interaccion);
+static int accion_escapar(sala_t *sala);
+static int accion_mostrar_mensaje(struct interaccion *interaccion, void (*f)(const char *, enum tipo_accion, void *), void *aux);
 
 /*
  * Ejecuta una accion segun la accion de la interaccion dada
@@ -392,7 +396,7 @@ static int ejecutar_accion(sala_t *sala, struct interaccion *interaccion, void (
 	return se_ejecuto;
 }
 
-int accion_descubrir_objeto(sala_t *sala, struct interaccion *interaccion)
+static int accion_descubrir_objeto(sala_t *sala, struct interaccion *interaccion)
 {
 	if (hash_contiene(sala->objetos_conocidos, interaccion->accion.objeto) == true ||
 	    hash_contiene(sala->inventario, interaccion->accion.objeto) == true ||
@@ -400,30 +404,40 @@ int accion_descubrir_objeto(sala_t *sala, struct interaccion *interaccion)
 		return -1;
 
 	struct objeto *objeto_interaccion = hash_obtener(sala->objetos, interaccion->objeto);
+	if(!objeto_interaccion)
+		return -1;
 
 	if (objeto_interaccion->es_asible == true && hash_contiene(sala->inventario, objeto_interaccion->nombre) == false)
 		return -1;
 
 	struct objeto *objeto = hash_obtener(sala->objetos, interaccion->accion.objeto);
+	if (!objeto)
+		return -1;
 	sala->objetos_conocidos = hash_insertar(sala->objetos_conocidos, objeto->nombre, objeto, NULL);
+	if (!sala->objetos_conocidos)
+		return -1;
 
 	return 0;
 }
 
-int accion_reemplazar_objeto(sala_t *sala, struct interaccion *interaccion)
+static int accion_reemplazar_objeto(sala_t *sala, struct interaccion *interaccion)
 {
 	if (hash_contiene(sala->inventario, interaccion->objeto) == false)
 		return -1;
 
 	struct objeto *objeto = hash_obtener(sala->objetos, interaccion->accion.objeto);
+	if (!objeto)
+		return -1;
 	sala->objetos_conocidos = hash_insertar(sala->objetos_conocidos, objeto->nombre, objeto, NULL);
+	if (!sala->objetos_conocidos)
+		return -1;
 	hash_quitar(sala->objetos_conocidos, interaccion->objeto_parametro);
 	void *objeto_quitado = hash_quitar(sala->objetos, interaccion->objeto_parametro);
 	free(objeto_quitado);
 	return 0;
 }
 
-int accion_eliminar_objeto(sala_t *sala, struct interaccion *interaccion)
+static int accion_eliminar_objeto(sala_t *sala, struct interaccion *interaccion)
 {
 	hash_quitar(sala->objetos_conocidos, interaccion->accion.objeto);
 	hash_quitar(sala->inventario, interaccion->accion.objeto);
@@ -432,13 +446,13 @@ int accion_eliminar_objeto(sala_t *sala, struct interaccion *interaccion)
 	return 0;
 }
 
-int accion_escapar(sala_t *sala)
+static int accion_escapar(sala_t *sala)
 {
 	sala->exito = true;
 	return 0;
 }
 
-int accion_mostrar_mensaje(struct interaccion *interaccion, void (*f)(const char *, enum tipo_accion, void *), void *aux)
+static int accion_mostrar_mensaje(struct interaccion *interaccion, void (*f)(const char *, enum tipo_accion, void *), void *aux)
 {
 	if (f == NULL)
 		return -1;

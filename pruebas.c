@@ -7,6 +7,24 @@
 #include "string.h"
 #include <stdbool.h>
 
+bool contiene(char **array, char *palabra, int tope)
+{
+	for (size_t i = 0; i < tope; i++)
+		if (strcmp(array[i], palabra) == 0)
+			return true;
+	return false;
+}
+
+int comparar_strings(const char **a, char **b, int tope)
+{
+	int iguales = 0;
+	for (size_t i = 0; i < tope; i++){
+		if (contiene((char **)a, b[i], tope) == true)
+			iguales++;
+	}
+	return iguales;
+}
+
 void pruebasCrearObjeto()
 {
 	pa2m_afirmar(objeto_crear_desde_string(NULL) == NULL,
@@ -100,13 +118,10 @@ void pruebas_crear_sala()
 	sala_t *sala = sala_crear_desde_archivos("chanu/obj.dat", "chanu/int.csv");
 
 	pa2m_afirmar(sala != NULL, "Puedo crear la sala a partir de archivos no vacíos");
-	// pa2m_afirmar(sala->cantidad_objetos == 9, "Se leyeron 9 objetos");
-	// pa2m_afirmar(sala->cantidad_interacciones == 9, "Se leyeron 9 interacciones");
-	
-	
 
 	sala_destruir(sala);
 }
+
 
 void pruebas_nombre_objetos()
 {
@@ -126,17 +141,13 @@ void pruebas_nombre_objetos()
 			"Puedo pedir el vector de nombres a la sala pasando cantidad no NULL");
 	pa2m_afirmar(cantidad == 9, "La cantidad de elementos del vector coincide con lo esperado");
 
-	// const char *esperados[] = { "habitacion",    "mesa",  "interruptor", "pokebola", "cajon",
-	// 			"cajon-abierto", "llave", "anillo",	     "puerta" };
+	const char *esperados[] = { "habitacion",    "mesa",  "interruptor", "pokebola", "cajon",
+				"cajon-abierto", "llave", "anillo",	     "puerta" };
 
-	// int comparaciones_exitosas = 0;
+	int comparaciones_exitosas = comparar_strings(esperados,objetos2,cantidad);
 
-	// for (int i = 0; i < cantidad; i++)
-	// 	if (strcmp(objetos2[i], esperados[i]) == 0)
-	// 		comparaciones_exitosas++;
-
-	// pa2m_afirmar(comparaciones_exitosas == cantidad,
-	// 		"Todos los nombres de objeto son los esperados");
+	pa2m_afirmar(comparaciones_exitosas == cantidad,
+			"Todos los nombres de objeto son los esperados");
 
 	free(objetos);
 	free(objetos2);
@@ -164,12 +175,6 @@ void pruebas_interacciones()
 	sala_destruir(sala);
 }
 
-bool contiene (char **array, char *palabra, int tope){
-	for(size_t i = 0; i < tope; i++)
-		if(strcmp(array[i],palabra) == 0)
-			return true;
-	return false;
-}
 
 
 void pruebas_de_funcionamiento_del_juego(){
@@ -178,11 +183,10 @@ void pruebas_de_funcionamiento_del_juego(){
 	int cantidad = 0;
 	char ** objetos = sala_obtener_nombre_objetos(sala , &cantidad);
 
-	int cantidad_conocidos;
+	int cantidad_conocidos = 0;
 	char **conocidos = sala_obtener_nombre_objetos_conocidos(sala,&cantidad_conocidos);
 	pa2m_afirmar(cantidad_conocidos == 1,"Solo hay un elemento conocido al iniciar el juego");
-	pa2m_afirmar(strcmp(conocidos[0],"habitacion") == 0, "Y es el objeto correcto");
-	
+	pa2m_afirmar(strcmp(conocidos[0],"habitacion") == 0, "Y es el objeto correcto");	
 	free(conocidos);
 
 	int cantidad_inventario = 0;

@@ -1,6 +1,6 @@
 PROGRAM = escape_pokemon
 CC = gcc
-CFLAGS = -Wall -std=c99 -Wconversion -Wtype-limits -Werror -pedantic -g -O0
+CFLAGS = -Wall -std=c99 -Wconversion -Wtype-limits -Werror -pedantic -g -O2
 OBJETOS = ejemplo/objetos.txt
 INTERACCIONES = ejemplo/interacciones.txt
 
